@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
@@ -10,30 +10,33 @@ export const protect = (
   res: Response,
   next: NextFunction
 ) => {
+  const authHeader = req.headers.authorization;
+
+  if (
+    !authHeader ||
+    !authHeader.startsWith("Bearer ")
+  ) {
+    return res.status(401).json({
+      message: "Not authorized",
+    });
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({
-        message: "No token provided",
-      });
-    }
-
     const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
     ) as {
-      userId: string;
+      id: string;
     };
 
-    req.userId = decoded.userId;
+    req.userId = decoded.id;
 
     next();
   } catch {
     return res.status(401).json({
-      message: "Invalid token",
+      message: "Invalid Token",
     });
   }
 };

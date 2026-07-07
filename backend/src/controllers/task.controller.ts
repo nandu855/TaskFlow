@@ -3,72 +3,162 @@ import prisma from "../config/prisma";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 // Create Task
-export const createTask = async (req: AuthRequest, res: Response) => {
+export const createTask = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    const { title, description } = req.body;
+    const {
+      title,
+      description,
+      priority,
+      category,
+      dueDate,
+      status,
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        message: "Title is required",
+      });
+    }
 
     const task = await prisma.task.create({
       data: {
         title,
         description,
+        priority: priority || "Medium",
+        category: category || "Personal",
+        status: status || "Pending",
+        dueDate: dueDate ? new Date(dueDate) : null,
         userId: req.userId!,
       },
     });
 
-    res.status(201).json(task);
+    return res.status(201).json(task);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server Error" });
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
-// Get All Tasks
-export const getTasks = async (req: AuthRequest, res: Response) => {
-  const tasks = await prisma.task.findMany({
-    where: {
-      userId: req.userId,
-    },
-  });
+// Get Tasks
+export const getTasks = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId: req.userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  res.json(tasks);
+    return res.json(tasks);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
 };
 
 // Update Task
-export const updateTask = async (req: AuthRequest, res: Response) => {
+export const updateTask = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
-    const { title, description, status } = req.body;
 
-    const task = await prisma.task.update({
-      where: { id },
+    const {
+      title,
+      description,
+      status,
+      priority,
+      category,
+      dueDate,
+    } = req.body;
+
+    const task = await prisma.task.findFirst({
+      where: {
+        id,
+        userId: req.userId,
+      },
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: {
+        id,
+      },
       data: {
         title,
         description,
         status,
+        priority,
+        category,
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
 
-    res.json(task);
+    return res.json(updatedTask);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server Error" });
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
 // Delete Task
-export const deleteTask = async (req: AuthRequest, res: Response) => {
+export const deleteTask = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
 
-    await prisma.task.delete({
-      where: { id },
+    const task = await prisma.task.findFirst({
+      where: {
+        id,
+        userId: req.userId,
+      },
     });
 
-    res.json({
-      message: "Task Deleted Successfully",
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    await prisma.task.delete({
+      where: {
+        id,
+      },
+    });
+
+    return res.json({
+      message: "Task deleted successfully",
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server Error" });
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
