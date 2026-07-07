@@ -76,7 +76,7 @@ export const updateTask = async (
   res: Response
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const {
       title,
@@ -130,7 +130,7 @@ export const deleteTask = async (
   res: Response
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const task = await prisma.task.findFirst({
       where: {
